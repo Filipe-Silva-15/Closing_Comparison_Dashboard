@@ -84,8 +84,8 @@
                 page-break-inside: avoid;
             }
             .chart-container {
-                height: 280px !important;
-                max-height: 280px !important;
+                height: 250px !important;
+                max-height: 250px !important;
                 width: 100%;
             }
             /* Ensure both views are visible for printing */
@@ -179,7 +179,7 @@
 
                     <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-8">
                         <h2 class="text-xl font-semibold text-gray-700 mb-2">Net Income Waterfall: Forecast vs. Actual (R$ '000)</h2>
-                        <p class="text-gray-500 mb-6">This chart breaks down the difference between the Flash Closing and the final Actual Net Income, showing how each major financial category contributed to the total variance.</p>
+                        <p class="text-gray-500 mb-6">This chart breaks down the difference between the Forecast made in June/25 and the final Actual Net Income, showing how each major financial category contributed to the total variance.</p>
                         <div class="chart-container">
                             <canvas id="forecastWaterfallChart"></canvas>
                         </div>
@@ -295,7 +295,7 @@
         
         const renderKPIs = (view, data) => {
             const isFlash = view === 'flash';
-            const closingLabel = isFlash ? 'Net Income Flash Closing (R$ 000)' : 'Net Income Forecast (R$ 000)';
+            const closingLabel = isFlash ? 'Net Income Flash Closing (R$ \'000)' : 'Net Income Forecast (R$ \'000)';
             document.getElementById(`${view}-kpi-closing`).innerHTML = `<p class="text-sm font-medium text-gray-500">${closingLabel}</p><p class="text-3xl font-bold text-gray-800">${formatCurrency(data.closing)}</p>`;
             document.getElementById(`${view}-kpi-actual`).innerHTML = `<p class="text-sm font-medium text-gray-500">Net Income Actual (R$ '000)</p><p class="text-3xl font-bold text-blue-600">${formatCurrency(data.actual)}</p>`;
             document.getElementById(`${view}-kpi-variance`).innerHTML = `<p class="text-sm font-medium text-gray-500">Total Variance (R$ '000)</p><p class="text-3xl font-bold ${data.variance > 0 ? 'value-positive' : 'value-negative'}">${formatCurrency(data.variance)}</p>`;
@@ -342,22 +342,34 @@
 
         const createOrUpdateWaterfallChart = (chartInstance, canvasId, sourceData) => {
             let runningTotal = 0;
+            const allPoints = [0]; // Start at 0 for the base
             const chartData = sourceData.data.map(item => {
-                if (item.t === 't') { // 't' for total
+                if (item.t === 't') {
+                    allPoints.push(item.v);
                     runningTotal = item.v;
                     return [0, item.v];
                 }
-                const start = runningTotal; // 'd' for delta
+                const start = runningTotal;
                 const end = runningTotal + item.v;
+                allPoints.push(end);
                 runningTotal = end;
                 return [start, end];
             });
+
+            const dataMin = Math.min(...allPoints);
+            const dataMax = Math.max(...allPoints);
+            const buffer = (dataMax - dataMin) * 0.10; // 15% buffer
+            const newMax = dataMax + buffer;
+            const newMin = dataMin - buffer;
+
             const backgroundColors = sourceData.data.map(item => item.t === 't' ? '#1f2937' : (item.v >= 0 ? '#10b981' : '#ef4444'));
 
             if (chartInstance) {
                 chartInstance.data.labels = sourceData.labels;
                 chartInstance.data.datasets[0].data = chartData;
                 chartInstance.data.datasets[0].backgroundColor = backgroundColors;
+                chartInstance.options.scales.y.min = newMin;
+                chartInstance.options.scales.y.max = newMax;
                 chartInstance.update();
                 return chartInstance;
             } else {
@@ -384,12 +396,19 @@
                                 formatter: (value, context) => {
                                     const raw = sourceData.data[context.dataIndex];
                                     const variance = raw.v;
-                                    if (Math.abs(variance) < 10) return null; // Hide smaller values for clarity
+                                    if (raw.t === 'd' && Math.abs(variance) < 10) return null;
                                     return variance.toLocaleString('en-US');
                                 }
                             }
                         },
-                        scales: { x: { grid: { display: false }}, y: { beginAtZero: false, ticks: { callback: (value) => formatCurrency(value) }}}
+                        scales: { 
+                            x: { grid: { display: false }}, 
+                            y: { 
+                                beginAtZero: false, 
+                                max: newMax,
+                                ticks: { callback: (value) => formatCurrency(value) }
+                            }
+                        }
                     }
                 });
             }
@@ -478,4 +497,3 @@
     </script>
 </body>
 </html>
-
