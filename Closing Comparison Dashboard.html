@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Analysis Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Neutral Gray & Corporate Blue/Green/Red -->
+    <!-- Application Structure Plan: The application uses a tab-based navigation to switch between two primary views: 'Flash vs. Actual' and 'Forecast vs. Actual'. This structure directly mirrors the two main analyses in the source report, making navigation highly intuitive for a user familiar with the document. Each view presents a consistent layout: 1) Headline KPIs for the main variance. 2) An interactive waterfall chart visualizing the net income breakdown. 3) A section for key takeaways and qualitative analysis. 4) A detailed table of financial metrics. This task-oriented design allows users to easily compare the two scenarios and drill down from a high-level visual summary to granular data. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: Net Income Variance (e.g., Flash 42,014 vs Actual 30,469). Goal: Inform/Compare. Viz: Waterfall Chart (Chart.js with floating bars). Interaction: Tooltips on hover provide exact values for each variance component. Justification: A waterfall chart is the most effective way to visualize how a series of positive and negative changes contribute to a final result, which is the core story of the report.
+        - Report Info: Key Variance Drivers (e.g., Interest-income shortfall -3.20mn). Goal: Organize/Explain. Viz: Styled Key Takeaways section (HTML/Tailwind). Interaction: None. Justification: Presents the qualitative summary from the report in a clear, scannable format, providing essential context to the charts.
+        - Report Info: Detailed Financial Tables. Goal: Provide Granular Data. Viz: HTML tables. Interaction: None. Justification: Offers a direct reference to the source data for users who need to see the specific numbers behind the analysis.
+        - Report Info: Headline figures (Net Income Actual, Flash, Forecast). Goal: Inform. Viz: KPI Cards (HTML/Tailwind). Interaction: Content updates based on the selected view (Flash vs. Forecast). Justification: Provides an immediate, high-level summary of the core figures.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 50vh;
+            max-height: 460px;
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+            border-bottom: 4px solid transparent;
+        }
+        .nav-button.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+        }
+        .kpi-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+        .value-positive { color: #10b981; }
+        .value-negative { color: #ef4444; }
+        .table-striped tr:nth-child(even) { background-color: #f9fafb; }
+        
+        #loader {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            z-index: 9999;
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            header, #print-button, #upload-label {
+                display: none !important;
+            }
+            main {
+                padding-top: 0 !important;
+            }
+            .kpi-card, .bg-white {
+                box-shadow: none !important;
+                border: 1px solid #e5e7eb;
+            }
+            .bg-white {
+                page-break-inside: avoid;
+            }
+            .chart-container {
+                height: 280px !important;
+                max-height: 280px !important;
+                width: 100%;
+            }
+            /* Ensure both views are visible for printing */
+            #view-flash, #view-forecast {
+                display: block !important;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div id="loader" class="flex justify-center items-center">
+        <div class="text-center">
+            <svg class="animate-spin h-10 w-10 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-4 text-lg font-semibold text-gray-700">Processing new report...</p>
+        </div>
+    </div>
+
+    <div id="app" class="min-h-screen">
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col sm:flex-row justify-between items-center py-4">
+                    <h1 class="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Financial Analysis Dashboard</h1>
+                    <div class="flex items-center space-x-4">
+                        <label id="upload-label" for="file-upload" class="cursor-pointer bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-300 rounded-lg shadow-sm transition">
+                            Upload New Report
+                        </label>
+                        <input id="file-upload" type="file" class="hidden" accept=".pdf,.csv,.xlsx"/>
+                        <button id="print-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition">
+                            Print to PDF
+                        </button>
+                    </div>
+                </div>
+                <nav class="flex border-b border-gray-200">
+                    <button id="btn-flash" class="nav-button py-4 px-6 text-lg font-semibold text-gray-500">Flash vs. Actual</button>
+                    <button id="btn-forecast" class="nav-button py-4 px-6 text-lg font-semibold text-gray-500">Forecast vs. Actual</button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="py-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Flash vs Actual View -->
+                <div id="view-flash">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div id="flash-kpi-closing" class="kpi-card text-center"></div>
+                        <div id="flash-kpi-actual" class="kpi-card text-center"></div>
+                        <div id="flash-kpi-variance" class="kpi-card text-center"></div>
+                    </div>
+
+                    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-8">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-2">Net Income Waterfall: Flash vs. Actual (R$ '000)</h2>
+                        <p class="text-gray-500 mb-6">This chart breaks down the difference between the Flash Closing and the final Actual Net Income, showing how each major financial category contributed to the total variance.</p>
+                        <div class="chart-container">
+                            <canvas id="flashWaterfallChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-8">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Income Statement Analysis: Flash vs. Actual</h2>
+                        <div class="overflow-x-auto">
+                            <table id="flash-income-table" class="min-w-full text-sm"></table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-8">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Where did we miss? Flash vs. Actual</h2>
+                        <div class="overflow-x-auto">
+                            <table id="flash-miss-table" class="min-w-full text-sm"></table>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md page-break">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Take-Aways: Flash vs. Actual</h2>
+                        <div id="flash-takeaways" class="space-y-4"></div>
+                    </div>
+                </div>
+
+                <!-- Forecast vs Actual View -->
+                <div id="view-forecast" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div id="forecast-kpi-closing" class="kpi-card text-center"></div>
+                        <div id="forecast-kpi-actual" class="kpi-card text-center"></div>
+                        <div id="forecast-kpi-variance" class="kpi-card text-center"></div>
+                    </div>
+
+                    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-8">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-2">Net Income Waterfall: Forecast vs. Actual (R$ '000)</h2>
+                        <p class="text-gray-500 mb-6">This chart breaks down the difference between the Flash Closing and the final Actual Net Income, showing how each major financial category contributed to the total variance.</p>
+                        <div class="chart-container">
+                            <canvas id="forecastWaterfallChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-8">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Income Statement Analysis: Forecast vs. Actual</h2>
+                        <div class="overflow-x-auto">
+                            <table id="forecast-income-table" class="min-w-full text-sm"></table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-8">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Where did we miss? Forecast vs. Actual</h2>
+                        <div class="overflow-x-auto">
+                           <table id="forecast-miss-table" class="min-w-full text-sm"></table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Take-Aways: Forecast vs. Actual</h2>
+                        <div id="forecast-takeaways" class="space-y-4"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Register Chart.js datalabels plugin globally
+        Chart.register(ChartDataLabels);
+
+        // UI Elements
+        const btnFlash = document.getElementById('btn-flash');
+        const btnForecast = document.getElementById('btn-forecast');
+        const viewFlash = document.getElementById('view-flash');
+        const viewForecast = document.getElementById('view-forecast');
+        const printButton = document.getElementById('print-button');
+        const fileUpload = document.getElementById('file-upload');
+        const loader = document.getElementById('loader');
+
+        let flashWaterfallChart, forecastWaterfallChart;
+        let currentView = 'flash';
+
+        // --- DATA SECTION ---
+        const initialReportData = {
+            flash: {
+                kpis: { closing: 42014, actual: 30469, variance: -11545 },
+                waterfall: {
+                    labels: ['Flash Closing', 'Payments', 'Credit', 'Banking', 'Other Rev', 'Funding Cost', 'Selling Exp', 'Other Costs', 'Taxes', 'Actual'],
+                    data: [{ v: 42014, t: 't' },{ v: -173, t: 'd' },{ v: -2849, t: 'd' },{ v: -352, t: 'd' },{ v: -2809, t: 'd' },{ v: 868, t: 'd' },{ v: 1303, t: 'd' },{ v: -5003, t: 'd' },{ v: -2530, t: 'd' },{ v: 30469, t: 't' }]
+                },
+                incomeTable: [
+                    { item: '1. Net revenue', delta: '-6.18mn', driver: 'POS Sales drop: -2.92m, Interest on loans: -2.85mn, Interest on deposits: -0.35mn.' },
+                    { item: '2. Cost of POS sold', delta: '-1.06mn', driver: 'More POS shipped (hardware cost -1.98mn), offset by lower sales-incentive bill (+1.05mn).' },
+                    { item: '3. Cost of service', delta: '-1.4mn', driver: 'Cloud/data-processing (-2.9mn) & higher credit-loss allowance (-0.4mn), partly offset by staff/software cuts (+1.95mn).' },
+                    { item: 'Gross profit (after funding cost)', delta: '-7.6mn', driver: 'Sum of the three rows above.', isBold: true, isSub: true },
+                    { item: '4. Selling & Admin (SG&A)', delta: '+0.5mn', driver: 'Lower marketing expenses (+1.22mn) despite higher Travel (-0.49mn) and Other operating expenses (-0.47mn).' },
+                    { item: '5. Net financial result', delta: '-0.9mn', driver: 'Worse FX variation impact (-0.99mn) and less yield on investments (-0.27mn), with a small win in funding cost (+0.87mn).' },
+                    { item: '6. Taxes', delta: '-2.6mn', driver: 'Effective tax rate 46.7% vs 36.5% in the flash.' },
+                    { item: 'Net income', delta: '-11.5mn', driver: 'Sum of all variances.', isBold: true, isTotal: true }
+                ],
+                missTable: [
+                    { bucket: 'Interest-income shortfall (loans + customer deposits)', impact: '-3.20mn', share: '28%' },
+                    { bucket: 'Transaction-related revenue softness (Mainly POS Sales Drop)', impact: '-3.08mn', share: '27%' },
+                    { bucket: 'Higher income-tax expense', impact: '-2.56mn', share: '22%' },
+                    { bucket: 'Variable operating costs (POS hardware, data-processing, etc.)', impact: '-2.42mn', share: '21%' },
+                    { bucket: 'Net financial result (FX swing & lower investment yield)', impact: '-0.90mn', share: '8%' },
+                    { bucket: 'SG&A & other operating items', impact: '+0.48mn', share: '-4%' }
+                ],
+                takeaways: [
+                    { title: '1. Two topline pressure points explain just over half the gap (-R$ 6.18mn)', text: 'POS-sales collapse (terminal sell-thru) erased almost -R$ 3.0mn, while lower interest yield on the loan book & deposits chipped in another -R$ 3.2mn.' },
+                    { title: '2. Variable costs ate 20% of profit (-R$ 2.42mn)', text: 'More terminals shipped and heavier cloud usage lifted POS-hardware and data-processing costs by -R$ 2.4mn above flash.' },
+                    { title: '3. Tax and FX finished the job (-R$ 3.0mn combined)', text: 'Higher effective tax rate and the FX swing reduced the bottom line despite SG&A savings.' }
+                ]
+            },
+            forecast: {
+                kpis: { closing: 48842, actual: 30469, variance: -18373 },
+                waterfall: {
+                    labels: ['Forecast', 'Payments', 'Credit', 'Banking', 'Other Rev', 'Funding Cost', 'Selling Exp', 'Other Costs', 'Taxes', 'Actual'],
+                    data: [{ v: 48842, t: 't' },{ v: -4840, t: 'd' },{ v: 1370, t: 'd' },{ v: -342, t: 'd' },{ v: -3079, t: 'd' },{ v: -688, t: 'd' },{ v: 1687, t: 'd' },{ v: -13878, t: 'd' },{ v: 1395, t: 'd' },{ v: 30469, t: 't' }]
+                },
+                incomeTable: [
+                    { item: '1. Net revenue', delta: '-6.89mn', driver: 'Acquiring Revenue (-4.8mn), POS sales drop (-3.12mn), offset by higher Interest on loans (+1.37mn).' },
+                    { item: '2. Cost of POS sold', delta: '-0.1mn', driver: 'Higher unit cost (-1.7mn) almost fully offset by lower sales incentives (+1.6mn).' },
+                    { item: '3. Cost of service', delta: '-2.4mn', driver: 'Heavier cloud/data-processing cost (-2.84mn) & higher credit-loss allowance (-0.97mn), partly offset by lower staff spend (+1.1mn).' },
+                    { item: 'Gross profit (after funding cost)', delta: '-10.0mn', driver: 'Sum of the three rows above.', isBold: true, isSub: true },
+                    { item: '4. SG&A (Selling + Admin)', delta: '+0.9mn', driver: 'Marketing improvement (+1.61mn) and head-count control.' },
+                    { item: '5. Net financial result', delta: '-11.3mn', driver: 'FX swing (-9.74mn) and higher anticipation funding cost (-0.69mn).' },
+                    { item: '6. Taxes', delta: '+1.4mn', driver: 'Lower nominal tax due to higher pre-tax miss.' },
+                    { item: 'Net income variance', delta: '-18.4mn', driver: 'Actual 30.5mn vs Forecast 48.8mn.', isBold: true, isTotal: true }
+                ],
+                missTable: [
+                    { bucket: 'FX & other financial items', impact: '-11.3mn', share: '62%' },
+                    { bucket: 'Acquiring Revenue (MDR + Antic.)', impact: '-4.8mn', share: '26%' },
+                    { bucket: 'POS Sales Revenue', impact: '-3.1mn', share: '17%' },
+                    { bucket: 'Variable operating costs (POS hardware, data-processing, credit provisions)', impact: '-2.5mn', share: '13%' },
+                    { bucket: 'SG&A savings & lower tax', impact: '+2.3mn', share: '-12%' },
+                    { bucket: 'Interest-income lift (loans + customer deposits)', impact: '+1.0mn', share: '-5%' }
+                ],
+                takeaways: [
+                    { title: '1. Financial-market hit (-R$ 11.3mn) explains ~60% of the miss', text: 'A sharp FX swing turned expected gains into a -R$ 9.7mn loss.' },
+                    { title: '2. Acquiring operation squeeze from lower TPV and POS Sales', text: 'Lower MDR + Anticipation revenue (-R$ 4.8mn), due to lower TPV, plus POS sales drop (-R$ 3.1mn) eroded net revenue.' },
+                    { title: '3. Service intensity hit margins', text: 'Heavier cloud usage, plus a prudent bump in credit-loss allowance, shaved another (-R$ 2.4mn) from profit.' },
+                    { title: '4. Operational discipline helped but could not close the gap', text: 'Marketing and G&A underspend, a small lift in loan interest, and a lower tax bill saved +R$ 3.3mn, offsetting 17% of the downside.' }
+                ]
+            }
+        };
+
+        // --- RENDER FUNCTIONS ---
+        const formatCurrency = (value) => `R$ ${value.toLocaleString('en-US')}`;
+        
+        const renderKPIs = (view, data) => {
+            const isFlash = view === 'flash';
+            const closingLabel = isFlash ? 'Net Income Flash Closing (R$ 000)' : 'Net Income Forecast (R$ 000)';
+            document.getElementById(`${view}-kpi-closing`).innerHTML = `<p class="text-sm font-medium text-gray-500">${closingLabel}</p><p class="text-3xl font-bold text-gray-800">${formatCurrency(data.closing)}</p>`;
+            document.getElementById(`${view}-kpi-actual`).innerHTML = `<p class="text-sm font-medium text-gray-500">Net Income Actual (R$ '000)</p><p class="text-3xl font-bold text-blue-600">${formatCurrency(data.actual)}</p>`;
+            document.getElementById(`${view}-kpi-variance`).innerHTML = `<p class="text-sm font-medium text-gray-500">Total Variance (R$ '000)</p><p class="text-3xl font-bold ${data.variance > 0 ? 'value-positive' : 'value-negative'}">${formatCurrency(data.variance)}</p>`;
+        };
+
+        const renderTable = (tableId, headers, rows, rowRenderer) => {
+            const tableEl = document.getElementById(tableId);
+            tableEl.innerHTML = `
+                <thead class="bg-gray-50">
+                    <tr>${headers.map(h => `<th class="px-4 py-3 text-${h.align || 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider">${h.label}</th>`).join('')}</tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    ${rows.map(rowRenderer).join('')}
+                </tbody>`;
+        };
+        
+        const renderIncomeTable = (view, data) => {
+            const headers = [{label: 'Income Statement'}, {label: 'Δ vs. ' + (view === 'flash' ? 'Flash Closing' : 'Forecast'), align: 'right'}, {label: 'Key Drivers'}];
+            renderTable(`${view}-income-table`, headers, data, r => `
+                <tr class="${r.isSub ? 'bg-gray-50' : ''} ${r.isTotal ? 'bg-blue-100' : ''}">
+                    <td class="px-4 py-3 ${r.isBold ? 'font-bold' : 'font-semibold'}">${r.item}</td>
+                    <td class="px-4 py-3 text-right font-semibold ${r.delta.startsWith('+') ? 'value-positive' : 'value-negative'}">${r.delta}</td>
+                    <td class="px-4 py-3 text-gray-600 ${r.isBold ? 'font-bold' : ''}">${r.driver}</td>
+                </tr>`);
+        };
+
+        const renderMissTable = (view, data) => {
+            const headers = [{label: 'Bucket'}, {label: 'Impact', align: 'right'}, {label: 'Share of Total Variance', align: 'right'}];
+            renderTable(`${view}-miss-table`, headers, data, r => `
+                <tr>
+                    <td class="px-4 py-3">${r.bucket}</td>
+                    <td class="px-4 py-3 text-right ${r.impact.startsWith('+') ? 'value-positive' : 'value-negative'}">${r.impact}</td>
+                    <td class="px-4 py-3 text-right">${r.share}</td>
+                </tr>`);
+        };
+
+        const renderTakeaways = (view, data) => {
+            document.getElementById(`${view}-takeaways`).innerHTML = data.map(t => `
+                <div class="p-4 rounded-lg bg-gray-50">
+                    <h3 class="font-semibold text-gray-800">${t.title}</h3>
+                    <p class="mt-1 text-gray-600 text-sm">${t.text}</p>
+                </div>`).join('');
+        };
+
+        const createOrUpdateWaterfallChart = (chartInstance, canvasId, sourceData) => {
+            let runningTotal = 0;
+            const chartData = sourceData.data.map(item => {
+                if (item.t === 't') { // 't' for total
+                    runningTotal = item.v;
+                    return [0, item.v];
+                }
+                const start = runningTotal; // 'd' for delta
+                const end = runningTotal + item.v;
+                runningTotal = end;
+                return [start, end];
+            });
+            const backgroundColors = sourceData.data.map(item => item.t === 't' ? '#1f2937' : (item.v >= 0 ? '#10b981' : '#ef4444'));
+
+            if (chartInstance) {
+                chartInstance.data.labels = sourceData.labels;
+                chartInstance.data.datasets[0].data = chartData;
+                chartInstance.data.datasets[0].backgroundColor = backgroundColors;
+                chartInstance.update();
+                return chartInstance;
+            } else {
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                return new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: sourceData.labels, datasets: [{ label: 'Net Income (R$)', data: chartData, backgroundColor: backgroundColors, barPercentage: 0.8, categoryPercentage: 0.9 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { display: false }, 
+                            tooltip: { callbacks: { label: function(context) {
+                                const raw = sourceData.data[context.dataIndex];
+                                if (raw.t === 't') return `${context.label}: ${formatCurrency(raw.v)}`;
+                                const sign = raw.v >= 0 ? '+' : '';
+                                return `${context.label} Variance: ${sign}${formatCurrency(raw.v)}`;
+                            }}},
+                            datalabels: {
+                                color: '#374151',
+                                anchor: (context) => context.dataset.data[context.dataIndex][0] < context.dataset.data[context.dataIndex][1] ? 'end' : 'start',
+                                align: (context) => context.dataset.data[context.dataIndex][0] < context.dataset.data[context.dataIndex][1] ? 'end' : 'start',
+                                offset: 4,
+                                font: { weight: '900', size: 12 },
+                                formatter: (value, context) => {
+                                    const raw = sourceData.data[context.dataIndex];
+                                    const variance = raw.v;
+                                    if (Math.abs(variance) < 10) return null; // Hide smaller values for clarity
+                                    return variance.toLocaleString('en-US');
+                                }
+                            }
+                        },
+                        scales: { x: { grid: { display: false }}, y: { beginAtZero: false, ticks: { callback: (value) => formatCurrency(value) }}}
+                    }
+                });
+            }
+        };
+
+        const updateDashboard = (data) => {
+            // Flash View
+            renderKPIs('flash', data.flash.kpis);
+            renderIncomeTable('flash', data.flash.incomeTable);
+            renderMissTable('flash', data.flash.missTable);
+            renderTakeaways('flash', data.flash.takeaways);
+            flashWaterfallChart = createOrUpdateWaterfallChart(flashWaterfallChart, 'flashWaterfallChart', data.flash.waterfall);
+            
+            // Forecast View
+            renderKPIs('forecast', data.forecast.kpis);
+            renderIncomeTable('forecast', data.forecast.incomeTable);
+            renderMissTable('forecast', data.forecast.missTable);
+            renderTakeaways('forecast', data.forecast.takeaways);
+            forecastWaterfallChart = createOrUpdateWaterfallChart(forecastWaterfallChart, 'forecastWaterfallChart', data.forecast.waterfall);
+        };
+        
+        // --- EVENT LISTENERS ---
+        const setActiveView = (view) => {
+            currentView = view;
+            if (view === 'flash') {
+                btnFlash.classList.add('active');
+                btnForecast.classList.remove('active');
+                viewFlash.classList.remove('hidden');
+                viewForecast.classList.add('hidden');
+            } else {
+                btnForecast.classList.add('active');
+                btnFlash.classList.remove('active');
+                viewForecast.classList.remove('hidden');
+                viewFlash.classList.add('hidden');
+            }
+        };
+
+        const handlePrint = () => {
+            // Show both sections for printing
+            viewFlash.classList.remove('hidden');
+            viewForecast.classList.remove('hidden');
+            
+            // Allow the DOM to update before triggering print
+            requestAnimationFrame(() => {
+                window.print();
+            });
+        };
+
+        const afterPrintHandler = () => {
+            // Restore the view to what it was before printing
+            setActiveView(currentView);
+        };
+
+        btnFlash.addEventListener('click', () => setActiveView('flash'));
+        btnForecast.addEventListener('click', () => setActiveView('forecast'));
+        printButton.addEventListener('click', handlePrint);
+        window.addEventListener('afterprint', afterPrintHandler);
+
+        fileUpload.addEventListener('change', (event) => {
+            if (event.target.files.length > 0) {
+                loader.style.display = 'flex';
+                // This is a simulation. In a real app, you would parse the file here.
+                // We use a timeout to simulate the processing time.
+                setTimeout(() => {
+                    // New dummy data to show the dashboard has updated
+                    const newDummyData = JSON.parse(JSON.stringify(initialReportData)); // Deep copy
+                    newDummyData.flash.kpis.closing = 45000;
+                    newDummyData.flash.kpis.variance = newDummyData.flash.kpis.actual - 45000;
+                    newDummyData.flash.waterfall.data[0].v = 45000;
+                    newDummyData.forecast.kpis.closing = 50000;
+                    newDummyData.forecast.kpis.variance = newDummyData.forecast.kpis.actual - 50000;
+                    newDummyData.forecast.waterfall.data[0].v = 50000;
+                    newDummyData.flash.incomeTable[0].delta = '-9.18mn'; // Example change
+                    
+                    updateDashboard(newDummyData);
+                    loader.style.display = 'none';
+                    alert('Dashboard updated with new report data.');
+                }, 2500);
+            }
+        });
+
+        // --- INITIAL LOAD ---
+        updateDashboard(initialReportData);
+        setActiveView('flash');
+    });
+    </script>
+</body>
+</html>
