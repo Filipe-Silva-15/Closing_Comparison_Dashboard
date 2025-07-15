@@ -4,7 +4,7 @@
     <meta name="robots" content="noindex">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Analysis Dashboard</title>
+    <title>Financial Analysis Dashboard - Jun/25</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -73,7 +73,7 @@
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            header, #print-button, #upload-label {
+            header, #print-button {
                 display: none !important;
             }
             main {
@@ -111,12 +111,8 @@
         <header class="bg-white shadow-sm sticky top-0 z-10">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex flex-col sm:flex-row justify-between items-center py-4">
-                    <h1 class="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Financial Analysis Dashboard</h1>
+                    <h1 class="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Financial Analysis Dashboard - Jun/25</h1>
                     <div class="flex items-center space-x-4">
-                        <label id="upload-label" for="file-upload" class="cursor-pointer bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-300 rounded-lg shadow-sm transition">
-                            Upload New Report
-                        </label>
-                        <input id="file-upload" type="file" class="hidden" accept=".pdf,.csv,.xlsx"/>
                         <button id="print-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition">
                             Print to PDF
                         </button>
@@ -310,7 +306,7 @@
                     datasets: [{
                         data: dataPoints,
                         borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
                         fill: true,
                         tension: 0.1
                     }]
