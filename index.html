@@ -384,7 +384,7 @@
                             offset: 4, font: { weight: '900', size: 12 },
                             formatter: (v, c) => {
                                 const raw = sourceData.data[c.dataIndex];
-                                if (raw.t === 'd' && Math.abs(raw.v) < 1000) return null;
+                                if (raw.t === 'd' && Math.abs(raw.v) < 10) return null;
                                 return raw.v.toLocaleString('en-US');
                             }
                         }},
