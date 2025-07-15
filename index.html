@@ -316,7 +316,8 @@
                     plugins: {
                         legend: { display: false },
                         datalabels: {
-                            anchor: 'end', align: 'end',
+                            anchor: (context) => context.dataset.data[context.dataIndex] >= 0 ? 'end' : 'start',
+                            align: (context) => context.dataset.data[context.dataIndex] >= 0 ? 'end' : 'start',
                             formatter: (value) => (value / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 }) + 'k',
                             font: { weight: 'bold' }
                         }
