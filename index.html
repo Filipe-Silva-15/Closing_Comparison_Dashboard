@@ -4,7 +4,7 @@
     <meta name="robots" content="noindex">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Analysis Dashboard - Jun/25</title>
+    <title>Financial Analysis Dashboard - Jul/25</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -12,14 +12,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Neutral Gray & Corporate Blue/Green/Red -->
-    <!-- Application Structure Plan: The application uses a tab-based navigation to switch between two primary views: 'Flash vs. Actual' and 'Forecast vs. Actual'. This structure directly mirrors the two main analyses in the source report. Each view presents a consistent layout: 1) Headline KPIs. 2) An interactive waterfall chart. 3) Key summary tables. 4) A new section for Key Operational Metrics charts. 5) A new section for Accuracy KPIs. This task-oriented design allows users to easily compare scenarios and drill down from a high-level summary to granular data. -->
-    <!-- Visualization & Content Choices:
-        - Report Info: Net Income Variance. Goal: Inform/Compare. Viz: Waterfall Chart (Chart.js). Interaction: Tooltips. Justification: Best method to show contribution to a total.
-        - Report Info: Operational Metrics (TPV, Active Base, etc.). Goal: Compare progression. Viz: Line Charts. Interaction: Tooltips. Justification: Clearly shows the trend from Forecast to Flash to Actual for each key metric.
-        - Report Info: Forecast/Flash Accuracy. Goal: Quantify reliability. Viz: KPI Cards. Interaction: Color-coded for quick assessment. Justification: Provides an immediate, quantitative measure of performance against targets.
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -104,14 +96,13 @@
 </head>
 <body class="antialiased">
     <div id="loader" class="flex justify-center items-center">
-        <!-- Loader SVG -->
-    </div>
+        </div>
 
     <div id="app" class="min-h-screen">
         <header class="bg-white shadow-sm sticky top-0 z-10">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex flex-col sm:flex-row justify-between items-center py-4">
-                    <h1 class="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Financial Analysis Dashboard - Jun/25</h1>
+                    <h1 class="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Financial Analysis Dashboard - Jul/25</h1>
                     <div class="flex items-center space-x-4">
                         <button id="print-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition">
                             Print to PDF
@@ -127,7 +118,6 @@
 
         <main class="py-10">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <!-- Flash vs Actual View -->
                 <div id="view-flash">
                     <div id="flash-kpis" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"></div>
                     <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-8">
@@ -159,12 +149,11 @@
                     </div>
                 </div>
 
-                <!-- Forecast vs Actual View -->
                 <div id="view-forecast" class="hidden">
                      <div id="forecast-kpis" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"></div>
                     <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-8">
                         <h2 class="text-xl font-semibold text-gray-700 mb-2">Net Income Waterfall: Forecast vs. Actual (R$ '000)</h2>
-                        <p class="text-gray-500 mb-6">This chart breaks down the difference between the Flash Closing and the final Actual Net Income, showing how each major financial category contributed to the total variance.</p>
+                        <p class="text-gray-500 mb-6">This chart breaks down the difference between the Forecast and the final Actual Net Income, showing how each major financial category contributed to the total variance.</p>
                         <div class="chart-container"><canvas id="forecastWaterfallChart"></canvas></div>
                     </div>
                     <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md mb-8">
@@ -210,29 +199,68 @@
 
         const initialReportData = {
             flash: {
-                kpis: { closing: 42014, actual: 30469, variance: -11545 },
-                waterfall: { labels: ['Flash Closing','Payments','Credit','Banking','Other Rev','Funding Cost','Selling Exp','Other Costs','Taxes','Actual'], data: [{v:42014,t:'t'},{v:-173,t:'d'},{v:-2849,t:'d'},{v:-352,t:'d'},{v:-2809,t:'d'},{v:868,t:'d'},{v:1303,t:'d'},{v:-5003,t:'d'},{v:-2530,t:'d'},{v:30469,t:'t'}] },
-                incomeTable: [ { item: '1. Net revenue', delta: '-6.18mn', driver: 'POS Sales drop: -2.92m, Interest on loans: -2.85mn, Interest on deposits: -0.35mn.' }, { item: '2. Cost of POS sold', delta: '-1.06mn', driver: 'More POS shipped (hardware cost -1.98mn), offset by lower sales-incentive bill (+1.05mn).' }, { item: '3. Cost of service', delta: '-1.4mn', driver: 'Cloud/data-processing (-2.9mn) & higher credit-loss allowance (-0.4mn), partly offset by staff/software cuts (+1.95mn).' }, { item: 'Gross profit (after funding cost)', delta: '-7.6mn', driver: 'Sum of the three rows above.', isBold: true, isSub: true }, { item: '4. Selling & Admin (SG&A)', delta: '+0.5mn', driver: 'Lower marketing expenses (+1.22mn) despite higher Travel (-0.49mn) and Other operating expenses (-0.47mn).' }, { item: '5. Net financial result', delta: '-0.9mn', driver: 'Worse FX variation impact (-0.99mn) and less yield on investments (-0.27mn), with a small win in funding cost (+0.87mn).' }, { item: '6. Taxes', delta: '-2.6mn', driver: 'Effective tax rate 46.7% vs 36.5% in the flash.' }, { item: 'Net income', delta: '-11.5mn', driver: 'Sum of all variances.', isBold: true, isTotal: true } ],
-                missTable: [ { bucket: 'Interest-income shortfall (loans + customer deposits)', impact: '-3.20mn', share: '28%' }, { bucket: 'Transaction-related revenue softness (Mainly POS Sales Drop)', impact: '-3.08mn', share: '27%' }, { bucket: 'Higher income-tax expense', impact: '-2.56mn', share: '22%' }, { bucket: 'Variable operating costs (POS hardware, data-processing, etc.)', impact: '-2.42mn', share: '21%' }, { bucket: 'Net financial result (FX swing & lower investment yield)', impact: '-0.90mn', share: '8%' }, { bucket: 'SG&A & other operating items', impact: '+0.48mn', share: '-4%' } ],
-                takeaways: [ { title: '1. Two topline pressure points explain just over half the gap (-R$ 6.18mn)', text: 'POS-sales collapse (terminal sell-thru) erased almost -R$ 3.0mn, while lower interest yield on the loan book & deposits chipped in another -R$ 3.2mn.' }, { title: '2. Variable costs ate 20% of profit (-R$ 2.42mn)', text: 'More terminals shipped and heavier cloud usage lifted POS-hardware and data-processing costs by -R$ 2.4mn above flash.' }, { title: '3. Tax and FX finished the job (-R$ 3.0mn combined)', text: 'Higher effective tax rate and the FX swing reduced the bottom line despite SG&A savings.' } ]
+                kpis: { closing: 55866, actual: 55847, variance: -19 },
+                waterfall: { labels: ['Flash Closing', 'Payments', 'Credit', 'Banking', 'Other Rev', 'Funding Cost', 'Selling Exp', 'Other Costs', 'Taxes', 'Actual'], data: [{v:55866,t:'t'},{v:4429,t:'d'},{v:232,t:'d'},{v:1545,t:'d'},{v:114,t:'d'},{v:-499,t:'d'},{v:-2056,t:'d'},{v:474,t:'d'},{v:-4258,t:'d'},{v:55847,t:'t'}] },
+                incomeTable: [
+                    { item: '1. Net revenue', delta: '+6.32mn', driver: 'Acquiring Revenue (MDR + anticipation) +4.4mn, and Interest on Deposits +1.5mn.' },
+                    { item: '2. Cost of POS sold', delta: '+1.42mn', driver: 'Driven by lower Hardware cost (+0.65mn) and lower sales incentives (+0.73mn).' },
+                    { item: '3. Cost of service', delta: '-3.22mn', driver: 'Higher operational software expenses (-1.51mn), credit-loss allowance (-1.2mn), and issuing costs (-0.98mn).' },
+                    { item: 'Gross profit (before funding cost)', delta: '+4.52mn', driver: 'Sum of the three rows above.', isBold: true, isSub: true },
+                    { item: '4. SG&A (Selling + Admin)', delta: '-0.83mn', driver: 'Higher marketing expenses (-2.1mn) were partly offset by other savings.' },
+                    { item: '5. Net financial result', delta: '+0.55mn', driver: 'Better yield on investments (+1.50mn), offset by higher funding cost (-0.50mn) and banking fees (-0.62mn).' },
+                    { item: '6. Taxes', delta: '-4.26mn', driver: 'Effective tax rate 37.6% vs 34.5% in the flash.' },
+                    { item: 'Net income variance', delta: '-0.02mn', driver: 'Actual 55.85mn vs Flash 55.87mn.', isBold: true, isTotal: true }
+                ],
+                missTable: [
+                    { bucket: 'Acquiring Revenue', impact: '+4.93mn', share: '-25947%' },
+                    { bucket: 'Interest-income lift & Net financial result', impact: '+2.33mn', share: '-12263%' },
+                    { bucket: 'Higher income-tax expense', impact: '-4.26mn', share: '22421%' },
+                    { bucket: 'Variable operating costs', impact: '-1.62mn', share: '8526%' },
+                    { bucket: 'SG&A & other operating items', impact: '-0.83mn', share: '4368%' }
+                ],
+                takeaways: [
+                    { title: '1. Topline strength driven by acquiring revenues', text: 'A significant beat on acquiring take rate (+$4.43mn) and interest on deposits (+$1.54mn) drove the revenue upside.' },
+                    { title: '2. Higher variable and operational costs', text: 'Increased costs were driven by a prudent increase in credit-loss allowance (-$1.9mn) and higher marketing spend (-$2.1mn), which offset some of the revenue gains.' },
+                    { title: '3. Higher taxes seal the small gap', text: 'A higher effective tax rate of 37.6% (vs. 34.5% in flash) resulted in a -$4.3mn negative impact, wiping out the operational gains.' }
+                ]
             },
             forecast: {
-                kpis: { closing: 48842, actual: 30469, variance: -18373 },
-                waterfall: { labels: ['Forecast','Payments','Credit','Banking','Other Rev','Funding Cost','Selling Exp','Other Costs','Taxes','Actual'], data: [{v:48842,t:'t'},{v:-4840,t:'d'},{v:1370,t:'d'},{v:-342,t:'d'},{v:-3079,t:'d'},{v:-688,t:'d'},{v:1687,t:'d'},{v:-13878,t:'d'},{v:1395,t:'d'},{v:30469,t:'t'}] },
-                incomeTable: [ { item: '1. Net revenue', delta: '-6.89mn', driver: 'Acquiring Revenue (-4.8mn), POS sales drop (-3.12mn), offset by higher Interest on loans (+1.37mn).' }, { item: '2. Cost of POS sold', delta: '-0.1mn', driver: 'Higher unit cost (-1.7mn) almost fully offset by lower sales incentives (+1.6mn).' }, { item: '3. Cost of service', delta: '-2.4mn', driver: 'Heavier cloud/data-processing cost (-2.84mn) & higher credit-loss allowance (-0.97mn), partly offset by lower staff spend (+1.1mn).' }, { item: 'Gross profit (after funding cost)', delta: '-10.0mn', driver: 'Sum of the three rows above.', isBold: true, isSub: true }, { item: '4. SG&A (Selling + Admin)', delta: '+0.9mn', driver: 'Marketing improvement (+1.61mn) and head-count control.' }, { item: '5. Net financial result', delta: '-11.3mn', driver: 'FX swing (-9.74mn) and higher anticipation funding cost (-0.69mn).' }, { item: '6. Taxes', delta: '+1.4mn', driver: 'Lower nominal tax due to higher pre-tax miss.' }, { item: 'Net income variance', delta: '-18.4mn', driver: 'Actual 30.5mn vs Forecast 48.8mn.', isBold: true, isTotal: true } ],
-                missTable: [ { bucket: 'FX & other financial items', impact: '-11.3mn', share: '62%' }, { bucket: 'Acquiring Revenue (MDR + Antic.)', impact: '-4.8mn', share: '26%' }, { bucket: 'POS Sales Revenue', impact: '-3.1mn', share: '17%' }, { bucket: 'Variable operating costs (POS hardware, data-processing, credit provisions)', impact: '-2.5mn', share: '13%' }, { bucket: 'SG&A savings & lower tax', impact: '+2.3mn', share: '-12%' }, { bucket: 'Interest-income lift (loans + customer deposits)', impact: '+1.0mn', share: '-5%' } ],
-                takeaways: [ { title: '1. Financial-market hit (-R$ 11.3mn) explains ~60% of the miss', text: 'A sharp FX swing turned expected gains into a -R$ 9.7mn loss.' }, { title: '2. Acquiring operation squeeze from lower TPV and POS Sales', text: 'Lower MDR + Anticipation revenue (-R$ 4.8mn), due to lower TPV, plus POS sales drop (-R$ 3.1mn) eroded net revenue.' }, { title: '3. Service intensity hit margins', text: 'Heavier cloud usage, plus a prudent bump in credit-loss allowance, shaved another (-R$ 2.4mn) from profit.' }, { title: '4. Operational discipline helped but could not close the gap', text: 'Marketing and G&A underspend, a small lift in loan interest, and a lower tax bill saved +R$ 3.3mn, offsetting 17% of the downside.' } ]
+                kpis: { closing: 50141, actual: 55847, variance: 5705 },
+                waterfall: { labels: ['Forecast', 'Payments', 'Credit', 'Banking', 'Other Rev', 'Funding Cost', 'Selling Exp', 'Other Costs', 'Taxes', 'Actual'], data: [{v:50141,t:'t'},{v:21145,t:'d'},{v:3971,t:'d'},{v:2745,t:'d'},{v:80,t:'d'},{v:-12844,t:'d'},{v:-4980,t:'d'},{v:451,t:'d'},{v:-4862,t:'d'},{v:55847,t:'t'}] },
+                incomeTable: [
+                    { item: '1. Net revenue', delta: '+27.94mn', driver: 'Acquiring Revenue (+21.14mn), Interest on loans (+3.97mn), and Interest on Deposits (+2.75mn).' },
+                    { item: '2. Cost of POS sold', delta: '+1.21mn', driver: 'Lower sales incentives (+1.27mn) offset higher unit cost (-0.25mn).' },
+                    { item: '3. Cost of service', delta: '-6.48mn', driver: 'Heavier cloud/data-processing cost (-2.38mn), higher credit-loss allowance (-2.98mn), and higher chargeback-loss allowance (-2.29mn).' },
+                    { item: 'Gross profit (before funding cost)', delta: '+22.67mn', driver: 'Sum of the three rows above.', isBold: true, isSub: true },
+                    { item: '4. SG&A (Selling + Admin)', delta: '-4.61mn', driver: 'Marketing overspend (-5.08mn) was the main driver.' },
+                    { item: '5. Net financial result', delta: '-7.49mn', driver: 'Higher anticipation funding cost (-12.84mn) due to higher TPV, partly offset by a favorable FX swing (+6.05mn).' },
+                    { item: '6. Taxes', delta: '-4.86mn', driver: 'Effective rate 37.6% vs 36.5% in the forecast.' },
+                    { item: 'Net income variance', delta: '+5.70mn', driver: 'Actual 55.85mn vs Forecast 50.14mn.', isBold: true, isTotal: true }
+                ],
+                missTable: [
+                    { bucket: 'Acquiring Revenue (MDR + Antic.)', impact: '+20.85mn', share: '366%' },
+                    { bucket: 'Interest-income lift (loans + deposits)', impact: '+6.72mn', share: '118%' },
+                    { bucket: 'Net financial result (FX & funding cost)', impact: '-7.49mn', share: '-131%' },
+                    { bucket: 'Variable operating costs', impact: '-6.69mn', share: '-117%' },
+                    { bucket: 'SG&A & other items (marketing)', impact: '-4.61mn', share: '-81%' },
+                    { bucket: 'Higher income-tax expense', impact: '-4.86mn', share: '-85%' }
+                ],
+                takeaways: [
+                    { title: '1. Strong revenue performance (R$ 27.9mn) drives the beat', text: 'A significant upside in acquiring revenues (+$21.1mn) and interest income from both loans and deposits (+$6.7mn) greatly surpassed the forecast.' },
+                    { title: '2. Higher funding and operational costs eroded gains', text: 'Strong revenue from anticipation came with higher funding costs (-$12.8mn). This, combined with increased marketing spend (-$5.1mn) and larger provisions (-$4.6mn), consumed a large portion of the revenue upside.' },
+                    { title: '3. Favorable FX provided a partial cushion', text: 'An unexpected FX gain of +$6.0mn helped to offset some of the increased costs, contributing positively to the bottom line.' }
+                ]
             },
             operational: {
-                tpv: { label: 'TPV', forecast: 7480115, flash: 7278054, actual: 7278054 },
-                activeBase: { label: 'Active Base', forecast: 4101328, flash: 4110052, actual: 4110052 },
-                creditBalance: { label: 'Credit Balance', forecast: 214995, flash: 242735, actual: 236131 },
-                customerDeposits: { label: 'Customer Deposits', forecast: 1282831, flash: 1310789, actual: 1310789 },
-                costFunding: { label: 'Cost of Funding', forecast: -226801, flash: -228357, actual: -227489 },
-                sellingExpenses: { label: 'Selling Expenses', forecast: -59045, flash: -58661, actual: -57358 },
-                costServices: { label: 'Cost of Services', forecast: -66070, flash: -66135, actual: -68554 },
-                adminExpenses: { label: 'Admin Expenses', forecast: -8622, flash: -8622, actual: -8967 },                
-                netIncome: { label: 'Net Income', forecast: 48842, flash: 42014, actual: 30469 }
+                tpv: { label: 'TPV', forecast: 7906015, flash: 8176584, actual: 8176584 },
+                activeBase: { label: 'Active Base', forecast: 4262088, flash: 4298206, actual: 4298206 },
+                creditBalance: { label: 'Credit Balance', forecast: 237977, flash: 304776, actual: 303655 },
+                customerDeposits: { label: 'Customer Deposits', forecast: 1400920, flash: 1380277, actual: 1380277 },
+                costFunding: { label: 'Cost of Funding', forecast: -243425, flash: -255770, actual: -256269 },
+                sellingExpenses: { label: 'Selling Expenses', forecast: -61944, flash: -64868, actual: -66924 },
+                costServices: { label: 'Cost of Services', forecast: -69696, flash: -73166, actual: -74969 },
+                adminExpenses: { label: 'Admin Expenses', forecast: -8813, flash: -9186, actual: -8879 },
+                netIncome: { label: 'Net Income', forecast: 50141, flash: 55866, actual: 55847 }
             }
         };
 
@@ -245,7 +273,7 @@
             container.innerHTML = `
                 <div class="kpi-card text-center"><p class="text-sm font-medium text-gray-500">${closingLabel} (R$ '000)</p><p class="text-3xl font-bold text-gray-800">${formatCurrency(data.closing)}</p></div>
                 <div class="kpi-card text-center"><p class="text-sm font-medium text-gray-500">Net Income Actual (R$ '000)</p><p class="text-3xl font-bold text-blue-600">${formatCurrency(data.actual)}</p></div>
-                <div class="kpi-card text-center"><p class="text-sm font-medium text-gray-500">Total Variance (R$ '000)</p><p class="text-3xl font-bold ${data.variance > 0 ? 'value-positive' : 'value-negative'}">${formatCurrency(data.variance)}</p></div>`;
+                <div class="kpi-card text-center"><p class="text-sm font-medium text-gray-500">Total Variance (R$ '000)</p><p class="text-3xl font-bold ${data.variance >= 0 ? 'value-positive' : 'value-negative'}">${formatCurrency(data.variance)}</p></div>`;
         };
 
         const renderTable = (tableId, headers, rows, rowRenderer) => {
@@ -297,7 +325,7 @@
             const dataPoints = [metricData.forecast, metricData.flash, metricData.actual];
             const dataMin = Math.min(...dataPoints);
             const dataMax = Math.max(...dataPoints);
-            const buffer = (dataMax - dataMin) * 0.5;
+            const buffer = Math.abs(dataMax - dataMin) * 0.5 || Math.abs(dataMin) * 0.2;
 
             opCharts[chartId] = new Chart(ctx, {
                 type: 'bar',
@@ -430,4 +458,4 @@
     });
     </script>
 </body>
-</ht
+</html>
